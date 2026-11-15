@@ -127,7 +127,7 @@ def health():
         "model_ready": model is not None,
         "model_download_configured": bool(MODEL_URL),
         "model_error": MODEL_LOAD_ERROR,
-        "message": "Model is not configured. Image analysis is unavailable." if model is None else None,
+        "message": MODEL_LOAD_ERROR if model is None and MODEL_LOAD_ERROR else None,
     })
 
 
