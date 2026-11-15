@@ -1,38 +1,51 @@
 # MySkinAI
 
-MySkinAI is an AI-powered skin analysis application designed to help users explore skin-related insights through image-based analysis.
+MySkinAI is a web application for exploring skin-related information through image-based machine-learning experiments and UV index data.
 
 ## Features
 
-- Image upload for skin analysis
-- Skin type and risk-profile views
-- UV index information
-- Web interface built with Flask, HTML, CSS, and JavaScript
+- Image upload interface for experimental skin-image classification
+- Skin information and risk-profile pages
+- UV index lookup using OpenUV
+- Flask web application with HTML, CSS and JavaScript
 
-## Getting Started
+## Requirements
 
-### Requirements
+- Python 3.11
+- The trained model file `model.h5` in the project root (or set `MODEL_PATH`)
+- An OpenUV API key for UV index data
 
-Install the dependencies listed in `requirement.txt`:
+## Local setup
 
-```bash
-pip install -r requirement.txt
-```
+1. Create and activate a virtual environment.
+2. Install dependencies:
 
-### Configuration
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-Set the required environment variables before running the application. For UV index functionality, configure `OPENUV_API_KEY`.
+3. Configure environment variables:
 
-### Run
+   - `OPENUV_API_KEY`: required for UV index lookups
+   - `MODEL_PATH`: optional path to the trained Keras model; defaults to `model.h5`
+   - `PORT`: optional web server port; defaults to `5000`
 
-```bash
-python app.py
-```
+4. Place the trained model at the configured model path.
+5. Start the application:
 
-## Project Status
+   ```bash
+   python app.py
+   ```
 
-Development is ongoing. Model files and supporting assets must be present and correctly configured for image analysis to run.
+Open `http://127.0.0.1:5000`. The `/health` endpoint reports whether the model loaded successfully.
 
-## Disclaimer
+## Deployment
 
-MySkinAI is an informational software project and is not a substitute for professional medical advice, diagnosis, or treatment.
+Use the included `Procfile` with a Python hosting platform that supports Gunicorn. Configure `OPENUV_API_KEY` and ensure the model file is available at `MODEL_PATH`. Model weights should be stored using Git LFS or a secure model-artifact store, not committed as a regular Git blob.
+
+## Important limitations
+
+- Image classification is experimental and has not been established as a clinically validated diagnostic test.
+- A model output is not a measure of diagnostic accuracy and must not be used to diagnose or rule out skin cancer.
+- A qualified healthcare professional should assess any new, changing, bleeding, painful or otherwise concerning skin lesion.
+- UV index lookup requires a valid OpenUV API key and network access.
