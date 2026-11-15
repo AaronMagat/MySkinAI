@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en" data-sidebar-color="light" data-topbar-color="light" data-sidebar-view="default">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UV | SkinGuard</title>
+    <!-- Favicon -->
+    <link rel="shortcut icon" type="x-icon" href="static/img/skinguard-favicon.svg">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="static/css/icons.css">
+    <link rel="stylesheet" href="static/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/simplebar@latest/dist/simplebar.min.css">
+    <link rel="stylesheet" href="static/css/form.css">
+
+    <!-- Head JS -->
+    <script src="static/js/head.js"></script>
+</head>
+<body>
+    <!-- Wrapper -->
+    <div class="app-wrapper">
+        <!-- Menu Start -->
+        <div class="app-menu">
+            <!-- Logo -->
+            <a href="{{ url_for('index') }}" class="logo-box">
+                <img src="static/img/skinguard-logo-small.png">
+            </a>
+            <!--- Menu -->
+            <div data-simplebar>
+                <ul class="menu">
+                    <li class="menu-title">MENU</li>
+        
+                    <li class="menu-item">
+                        <a href="{{ url_for('index') }}" class="menu-link">
+                            <span class="menu-icon"><i class="mdi mdi-home-outline"></i></span>
+                            <span class="menu-text"> Home </span>
+                        </a>
+                    </li>
+        
+                    <li class="menu-item">
+                        <a href="{{ url_for('analyze_skin') }}" class="menu-link">
+                            <span class="menu-icon"><i class="mdi mdi-magnify"></i></span>
+                            <span class="menu-text"> Analyze Skin </span>
+                        </a>
+                    </li>
+        
+                    <li class="menu-item">
+                        <a href="{{ url_for('risk_profile') }}" class="menu-link">
+                            <span class="menu-icon"><i class="mdi mdi-clipboard-account"></i></span>
+                            <span class="menu-text"> Risk Profile </span>
+                        </a>
+                    </li>
+        
+                    <li class="menu-item">
+                        <a href="{{ url_for('skin_type') }}" class="menu-link">
+                            <span class="menu-icon"><i class="mdi mdi-chart-bell-curve-cumulative"></i></span>
+                            <span class="menu-text"> Skin Type </span>
+                        </a>
+                    </li>
+        
+                    <li class="menu-item">
+                        <a href="{{ url_for('uv_index') }}" class="menu-link">
+                            <span class="menu-icon"><i class="mdi mdi-weather-sunny"></i></span>
+                            <span class="menu-text"> UV Index </span>
+                        </a>
+                    </li>
+        
+                    <li class="menu-title">INFORMATION</li>
+        
+                    <li class="menu-item">
+                        <a href="https://skinguard-information-center.notaku.site/" target="_blank" class="menu-link">
+                            <span class="menu-icon"><i class="mdi mdi-information-outline"></i></span>
+                            <span class="menu-text"> Information Center </span>
+                        </a>
+                    </li>
+        
+                    <li class="menu-item">
+                        <a href="https://skinguard-knowledge-base.notaku.site/" target="_blank" class="menu-link">
+                            <span class="menu-icon"><i class="mdi mdi-help"></i></span>
+                            <span class="menu-text"> Help Center </span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Menu End -->
+
+        <!-- Page Content Start -->
+        <div class="app-content">
+            <!-- Heading Bar Start -->
+            <header class="app-header">
+                <!-- Brand Logo -->
+                <a href="{{ url_for('index') }}" class="logo-box">
+                    <img src="static/img/skinguard-single-logo.svg" class="small-logo" alt="Small logo">
+                </a>
+                <!-- Menu Toggle Button -->
+                <button id="button-toggle-menu" class="nav-link">
+                    <span class="hamburger-nav"></span>
+                    <span class="hamburger-nav-main">
+                        <i class="mdi mdi-24px mdi-menu"></i>
+                    </span>
+                </button>
+
+                <!-- Page Title -->
+                <h4 class="header-font-title">Home</h4>
+            </header>
+            <!-- Heading Bar End -->
+            <!-- Main Content Start -->
+            <main class="main-body">               
+                    <!-- UV Start -->
+                    <div class="card card-main-features">
+                        <div class="card-header">
+                            <h4 class="card-title">UV Index</h4>
+                        </div>
+                        <!-- UV INDEX CONTENT START -->
+                        <section class="uv-index">
+                            <div class="uv-index-container">
+                                <div class="uv-index-info">
+                                    <p>Location: {{ location }}</p>
+                                    <p>Current UV Index Today: <span class="uv-index-number">{{ uv_index_data.current_uv_index }}</span></p>
+                                    <p>Maximum UV Index Reached Today: <span class="uv-index-number">{{ uv_index_data.uv_max }}</span></p>
+                                    <div class="uv-index-description">
+                                        <p>
+                                            {% if uv_index_data.current_uv_index < 3 %}
+                                                <img src="{{ url_for('static', filename='img/low_uv_index_icon.jpg') }}" alt="Low UV Index Icon" class="uv-index-icon">With a low UV Index from 0 to 2, there is hardly any risk of sunburn.
+                                            {% elif uv_index_data.current_uv_index <= 5 %}
+                                                <img src="{{ url_for('static', filename='img/medium_uv_index_icon.jpg') }}" alt="Medium UV Index Icon" class="uv-index-icon">With a medium UV Index of 3 to 5, wearing protective clothing (shirt, T-shirt, blouse) is recommended.
+                                            {% elif uv_index_data.current_uv_index <= 7 %}
+                                                <img src="{{ url_for('static', filename='img/high_uv_index_icon.jpg') }}" alt="High UV Index Icon" class="uv-index-icon"> With a high UV Index of 6 to 7, you should definitely cover your upper body.
+                                            {% elif uv_index_data.current_uv_index <= 10 %}
+                                                <img src="{{ url_for('static', filename='img/very_high_uv_index_icon.jpg') }}" alt="Very High UV Index Icon" class="uv-index-icon"> Avoid staying outside in the hours between 11am and 3pm in the case of a very high UV Index of 8 to 10.
+                                            {% else %}
+                                                <img src="{{ url_for('static', filename='img/extreme_uv_index_icon.jpg') }}" alt="Extreme UV Index Icon" class="uv-index-icon"> With an extremely high UV Index of 11, 12 and higher, you should definitely avoid the sun during the lunch hours and stay indoors.
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+            </main>
+        </div>
+    </div>
+            
+        <script src="static/js/jquery.js"></script>
+        <script src="static/js/simplebar.js"></script>
+        <script src="static/js/waves.js"></script>
+        <script src="static/js/knob.js"></script>
+        <script src="static/js/preline.js"></script>
+        <script src="static/js/app.js"></script>
+   
+        <script>
+            // Define the function to update UV index
+            function updateUVIndex(lat, lon) {
+                fetch(`/uv-index?lat=${lat}&lon=${lon}`) // Use backticks for string interpolation
+                    .then(response => {
+                        // Check if the response is HTML instead of JSON
+                        if (response.redirected) {
+                            window.location.href = response.url; // Redirect to the UV index page
+                        } else {
+                            console.error('Error: Invalid response format');
+                        }
+                    })
+                    .catch(error => console.error('Error fetching UV index data:', error));
+            }
+        </script>
+</body>
+</html>
