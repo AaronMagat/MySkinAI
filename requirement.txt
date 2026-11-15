@@ -1,8 +1,5 @@
 Flask==3.0.2
 gunicorn==22.0.0
-numpy==1.26.4
-Pillow==10.3.0
 requests==2.31.0
-tensorflow-cpu==2.16.1
 geocoder==1.38.1
 geopy==2.4.1
