@@ -7,6 +7,8 @@ from __future__ import annotations
 import logging
 import os
 import tempfile
+import hashlib
+import threading
 from pathlib import Path
 
 import requests
@@ -36,6 +38,10 @@ except Exception:
 
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = Path(os.environ.get("MODEL_PATH", BASE_DIR / "model.h5"))
+MODEL_URL = os.environ.get("MODEL_URL", "https://media.githubusercontent.com/media/Gcan3/PythonSkin/main/model.h5")
+MODEL_SHA256 = "1a6482330b80cedbcf1fca7dee5e381bf45d138bb01417cadab52dd6b90e8c4a"
+MODEL_SIZE = 463270040
+model_lock = threading.Lock()
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
@@ -46,21 +52,53 @@ app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
 app.config["TEMPLATES_AUTO_RELOAD"] = os.environ.get("FLASK_ENV") == "development"
 
-# Load the model if it is available. The website can still start without it,
-# and the analysis endpoint will return a clear 503 response until configured.
+# Model weights are downloaded and verified on the first analysis request.
 model = None
 MODEL_LOAD_ERROR = None
-if load_model is None:
-    MODEL_LOAD_ERROR = TENSORFLOW_IMPORT_ERROR or "TensorFlow is not installed"
-elif MODEL_PATH.is_file():
-    try:
-        model = load_model(str(MODEL_PATH))
-        logger.info("AI model loaded from %s", MODEL_PATH)
-    except Exception as exc:
-        MODEL_LOAD_ERROR = str(exc)
-        logger.exception("Could not load AI model")
-else:
-    MODEL_LOAD_ERROR = f"Model file not found: {MODEL_PATH}"
+
+
+def ensure_model_loaded():
+    global model, MODEL_LOAD_ERROR
+    if model is not None:
+        return model
+    if load_model is None:
+        MODEL_LOAD_ERROR = TENSORFLOW_IMPORT_ERROR or "TensorFlow is not installed"
+        return None
+    with model_lock:
+        if model is not None:
+            return model
+        temp_name = None
+        try:
+            if not MODEL_PATH.is_file() or MODEL_PATH.stat().st_size != MODEL_SIZE:
+                MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+                digest = hashlib.sha256()
+                downloaded = 0
+                with requests.get(MODEL_URL, stream=True, timeout=(20, 180)) as response:
+                    response.raise_for_status()
+                    with tempfile.NamedTemporaryFile(prefix="myskinai_model_", suffix=".h5", dir=str(MODEL_PATH.parent), delete=False) as temp:
+                        temp_name = temp.name
+                        for chunk in response.iter_content(chunk_size=1024 * 1024):
+                            if chunk:
+                                downloaded += len(chunk)
+                                if downloaded > MODEL_SIZE:
+                                    raise ValueError("Downloaded model is larger than expected.")
+                                digest.update(chunk)
+                                temp.write(chunk)
+                if downloaded != MODEL_SIZE or digest.hexdigest() != MODEL_SHA256:
+                    raise ValueError("Downloaded model failed size or SHA-256 verification.")
+                os.replace(temp_name, MODEL_PATH)
+                temp_name = None
+            model = load_model(str(MODEL_PATH))
+            MODEL_LOAD_ERROR = None
+            logger.info("Verified and loaded MySkinAI model")
+            return model
+        except Exception as exc:
+            MODEL_LOAD_ERROR = str(exc)
+            logger.exception("Could not download or load AI model")
+            return None
+        finally:
+            if temp_name and os.path.exists(temp_name):
+                os.remove(temp_name)
 
 
 def allowed_file(filename: str) -> bool:
@@ -87,6 +125,8 @@ def health():
     return jsonify({
         "status": "ok",
         "model_ready": model is not None,
+        "model_download_configured": bool(MODEL_URL),
+        "model_error": MODEL_LOAD_ERROR,
         "message": "Model is not configured. Image analysis is unavailable." if model is None else None,
     })
 
@@ -121,9 +161,10 @@ def upload_file():
         return jsonify({"error": "Choose an image to upload."}), 400
     if not allowed_file(uploaded.filename):
         return jsonify({"error": "Only PNG, JPG and JPEG images are supported."}), 400
-    if model is None:
+    active_model = ensure_model_loaded()
+    if active_model is None:
         return jsonify({
-            "error": "Image analysis is temporarily unavailable because the AI model has not been installed.",
+            "error": "Image analysis is temporarily unavailable. The AI model could not be downloaded or loaded.",
             "model_ready": False,
         }), 503
 
@@ -135,7 +176,7 @@ def upload_file():
             uploaded.save(temp)
         if os.path.getsize(temp_path) == 0:
             return jsonify({"error": "The uploaded image is empty."}), 400
-        result, score = predict_image(temp_path, model)
+        result, score = predict_image(temp_path, active_model)
         return jsonify({
             "result": result,
             "scaled_value": score,
