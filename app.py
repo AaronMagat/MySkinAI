@@ -88,7 +88,7 @@ def health():
     return jsonify({
         "status": "ok",
         "model_ready": model is not None,
-        "model_error": MODEL_LOAD_ERROR if model is None else None,
+        "message": "Model is not configured. Image analysis is unavailable." if model is None else None,
     })
 
 
