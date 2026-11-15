@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UV | SkinGuard</title>
+    <title>UV | MySkinAI</title>
     <!-- Favicon -->
     <link rel="shortcut icon" type="x-icon" href="static/img/skinguard-favicon.svg">
     
@@ -24,7 +24,7 @@
         <div class="app-menu">
             <!-- Logo -->
             <a href="{{ url_for('index') }}" class="logo-box">
-                <img src="static/img/skinguard-logo-small.png">
+                <span class="logo-text">MySkinAI</span>
             </a>
             <!--- Menu -->
             <div data-simplebar>
@@ -69,14 +69,14 @@
                     <li class="menu-title">INFORMATION</li>
         
                     <li class="menu-item">
-                        <a href="https://skinguard-information-center.notaku.site/" target="_blank" class="menu-link">
+                        <a href="#" target="_blank" class="menu-link">
                             <span class="menu-icon"><i class="mdi mdi-information-outline"></i></span>
                             <span class="menu-text"> Information Center </span>
                         </a>
                     </li>
         
                     <li class="menu-item">
-                        <a href="https://skinguard-knowledge-base.notaku.site/" target="_blank" class="menu-link">
+                        <a href="#" target="_blank" class="menu-link">
                             <span class="menu-icon"><i class="mdi mdi-help"></i></span>
                             <span class="menu-text"> Help Center </span>
                         </a>
@@ -93,7 +93,7 @@
             <header class="app-header">
                 <!-- Brand Logo -->
                 <a href="{{ url_for('index') }}" class="logo-box">
-                    <img src="static/img/skinguard-single-logo.svg" class="small-logo" alt="Small logo">
+                    <span class="logo-text small-logo">MySkinAI</span>
                 </a>
                 <!-- Menu Toggle Button -->
                 <button id="button-toggle-menu" class="nav-link">
@@ -118,24 +118,27 @@
                         <section class="uv-index">
                             <div class="uv-index-container">
                                 <div class="uv-index-info">
-                                    <p>Location: {{ location }}</p>
-                                    <p>Current UV Index Today: <span class="uv-index-number">{{ uv_index_data.current_uv_index }}</span></p>
-                                    <p>Maximum UV Index Reached Today: <span class="uv-index-number">{{ uv_index_data.uv_max }}</span></p>
-                                    <div class="uv-index-description">
-                                        <p>
-                                            {% if uv_index_data.current_uv_index < 3 %}
-                                                <img src="{{ url_for('static', filename='img/low_uv_index_icon.jpg') }}" alt="Low UV Index Icon" class="uv-index-icon">With a low UV Index from 0 to 2, there is hardly any risk of sunburn.
-                                            {% elif uv_index_data.current_uv_index <= 5 %}
-                                                <img src="{{ url_for('static', filename='img/medium_uv_index_icon.jpg') }}" alt="Medium UV Index Icon" class="uv-index-icon">With a medium UV Index of 3 to 5, wearing protective clothing (shirt, T-shirt, blouse) is recommended.
-                                            {% elif uv_index_data.current_uv_index <= 7 %}
-                                                <img src="{{ url_for('static', filename='img/high_uv_index_icon.jpg') }}" alt="High UV Index Icon" class="uv-index-icon"> With a high UV Index of 6 to 7, you should definitely cover your upper body.
-                                            {% elif uv_index_data.current_uv_index <= 10 %}
-                                                <img src="{{ url_for('static', filename='img/very_high_uv_index_icon.jpg') }}" alt="Very High UV Index Icon" class="uv-index-icon"> Avoid staying outside in the hours between 11am and 3pm in the case of a very high UV Index of 8 to 10.
+                                    {% if error %}
+                                        <p role="alert">{{ error }}</p>
+                                    {% elif uv_index_data %}
+                                        <p>Location: {{ location }}</p>
+                                        <p>Current UV Index Today: <span class="uv-index-number">{{ uv_index_data.current_uv_index }}</span></p>
+                                        <p>Maximum UV Index Reached Today: <span class="uv-index-number">{{ uv_index_data.uv_max }}</span></p>
+                                        <div class="uv-index-description">
+                                            {% set uv = uv_index_data.current_uv_index %}
+                                            {% if uv < 3 %}
+                                                <p>Low UV exposure. Sun protection may still be appropriate depending on conditions.</p>
+                                            {% elif uv <= 5 %}
+                                                <p>Moderate UV exposure. Use sun protection, including shade, clothing and sunscreen.</p>
+                                            {% elif uv <= 7 %}
+                                                <p>High UV exposure. Protection is recommended when outdoors.</p>
+                                            {% elif uv <= 10 %}
+                                                <p>Very high UV exposure. Reduce time in direct sun and use full sun protection.</p>
                                             {% else %}
-                                                <img src="{{ url_for('static', filename='img/extreme_uv_index_icon.jpg') }}" alt="Extreme UV Index Icon" class="uv-index-icon"> With an extremely high UV Index of 11, 12 and higher, you should definitely avoid the sun during the lunch hours and stay indoors.
+                                                <p>Extreme UV exposure. Avoid direct midday sun where possible and use full sun protection.</p>
                                             {% endif %}
-                                        </p>
-                                    </div>
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </section>
@@ -144,27 +147,13 @@
         </div>
     </div>
             
-        <script src="static/js/jquery.js"></script>
+        <script src="https://code.jquery.com/jquery-3.7.1.min.js" crossorigin="anonymous"></script>
         <script src="static/js/simplebar.js"></script>
         <script src="static/js/waves.js"></script>
         <script src="static/js/knob.js"></script>
         <script src="static/js/preline.js"></script>
         <script src="static/js/app.js"></script>
    
-        <script>
-            // Define the function to update UV index
-            function updateUVIndex(lat, lon) {
-                fetch(`/uv-index?lat=${lat}&lon=${lon}`) // Use backticks for string interpolation
-                    .then(response => {
-                        // Check if the response is HTML instead of JSON
-                        if (response.redirected) {
-                            window.location.href = response.url; // Redirect to the UV index page
-                        } else {
-                            console.error('Error: Invalid response format');
-                        }
-                    })
-                    .catch(error => console.error('Error fetching UV index data:', error));
-            }
-        </script>
+        
 </body>
 </html>
