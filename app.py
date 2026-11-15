@@ -38,7 +38,6 @@ BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = Path(os.environ.get("MODEL_PATH", BASE_DIR / "model.h5"))
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
-OPENUV_API_KEY = os.environ.get("OPENUV_API_KEY")
 
 logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("myskinai")
@@ -186,31 +185,37 @@ def get_place_from_geopy(lat: float, lon: float):
 
 
 def get_uv_index(lat: float, lon: float):
-    if not OPENUV_API_KEY:
-        return {"error": "UV index service is not configured. Add OPENUV_API_KEY to the environment."}
+    """Retrieve current and daily maximum UV index from Open-Meteo (no API key required)."""
     try:
         response = requests.get(
-            "https://api.openuv.io/api/v1/uv",
-            params={"lat": lat, "lng": lon},
-            headers={"x-access-token": OPENUV_API_KEY},
-            timeout=10,
+            "https://api.open-meteo.com/v1/forecast",
+            params={
+                "latitude": lat,
+                "longitude": lon,
+                "current": "uv_index",
+                "daily": "uv_index_max",
+                "timezone": "auto",
+                "forecast_days": 1,
+            },
+            timeout=12,
         )
         response.raise_for_status()
-        result = response.json().get("result", {})
-        uv = result.get("uv")
-        uv_max = result.get("uv_max")
-        if uv is None or uv_max is None:
-            return {"error": "The UV service returned incomplete data."}
+        payload = response.json()
+        current = (payload.get("current") or {}).get("uv_index")
+        daily = payload.get("daily") or {}
+        maxima = daily.get("uv_index_max") or []
+        if current is None or not maxima or maxima[0] is None:
+            return {"error": "UV data is not available for this location right now."}
         return {
-            "current_uv_index": round(float(uv), 1),
-            "uv_max": round(float(uv_max), 1),
-            "location": (result.get("location") or {}).get("name"),
+            "current_uv_index": round(float(current), 1),
+            "uv_max": round(float(maxima[0]), 1),
+            "location": None,
         }
     except requests.RequestException:
-        logger.exception("UV service request failed")
-        return {"error": "Could not retrieve UV index data right now."}
-    except (TypeError, ValueError):
-        logger.exception("UV service returned invalid data")
+        logger.exception("Open-Meteo UV request failed")
+        return {"error": "Could not retrieve UV index data right now. Please try again later."}
+    except (TypeError, ValueError, KeyError):
+        logger.exception("Open-Meteo returned invalid UV data")
         return {"error": "The UV service returned invalid data."}
 
 
