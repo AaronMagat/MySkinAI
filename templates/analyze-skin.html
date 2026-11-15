@@ -111,6 +111,7 @@
 
             <!-- Main Content Start -->
             <main class="main-body">
+                <p role="note">MySkinAI provides experimental image-based information only. It cannot diagnose skin cancer or replace assessment by a qualified healthcare professional. Seek medical advice for any new, changing, bleeding or concerning skin lesion.</p>
                 <!-- Upper Row -->
                 <div class="main-grid-row xl-grid-4-cols m-grid-3-cols">
                     <!-- Skin Image Start -->
@@ -174,7 +175,7 @@
                             <!-- ACCURACY RESULTS -->
                             <div class="card card-diagnosis-table">
                                 <div class="card-header">
-                                    <h4 class="card-title">Accuracy</h4>
+                                    <h4 class="card-title">Model score</h4>
                                 </div>
 
                                 <div class="results-container">
@@ -183,7 +184,7 @@
                                             <i class="mdi mdi-24px mdi-percent-outline"></i>
                                         </span>
                                         <span>
-                                            <span class="result-heading">Accuracy Score</span>
+                                            <span class="result-heading">Model Score</span>
                                             <span class="result-number" id="accuracyScore"></span>
                                         </span>
                                     </div>
@@ -316,103 +317,51 @@
     <script src="static/js/preline.js"></script>
     <script src="static/js/app.js"></script>
     <script>
-        document.getElementById("uploadForm").addEventListener("submit", function (event) {
+        const uploadForm = document.getElementById("uploadForm");
+        uploadForm.addEventListener("submit", async function (event) {
             event.preventDefault();
-            var formData = new FormData(this);
-            var uploadButton = document.querySelector('.upload-button');
-            // Disable the button
-            uploadButton.disabled = true;
-            // Change button text to "Processing Image"
-            uploadButton.textContent = "Processing Image";
-            // Disable the file input
-            document.querySelector('input[type="file"]').disabled = true;
-            analyzeImage(formData);
+            const fileInput = uploadForm.querySelector('input[type="file"]');
+            const button = uploadForm.querySelector('button[type="submit"]');
+            const file = fileInput.files && fileInput.files[0];
+            if (!file) {
+                alert("Please choose a PNG or JPEG image first.");
+                return;
+            }
+            const originalText = button.textContent;
+            button.disabled = true;
+            fileInput.disabled = true;
+            button.textContent = "Analyzing...";
+            try {
+                const response = await fetch("/upload", { method: "POST", body: new FormData(uploadForm) });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Analysis could not be completed.");
+                document.getElementById("results").style.display = "block";
+                document.getElementById("imagePart").style.display = "block";
+                document.getElementById("uploadedImage").src = URL.createObjectURL(file);
+                document.getElementById("classification").innerText = data.result;
+                document.getElementById("accuracyScore").innerText =
+                    (Number(data.scaled_value) * 100).toFixed(1) + "% model score";
+                const benign = data.result === "Benign";
+                document.querySelector(".result-description-benign").style.display = benign ? "block" : "none";
+                document.querySelector(".result-description-malignant").style.display = benign ? "none" : "block";
+                const benignText = document.querySelector(".result-benign");
+                const malignantText = document.querySelector(".result-malignant");
+                if (benignText) benignText.style.display = benign ? "block" : "none";
+                if (malignantText) malignantText.style.display = benign ? "none" : "block";
+                const nextBenign = document.querySelector(".nextStep-benign");
+                const nextMalignant = document.querySelector(".nextStep-malignant");
+                if (nextBenign) nextBenign.style.display = benign ? "block" : "none";
+                if (nextMalignant) nextMalignant.style.display = benign ? "none" : "block";
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                fileInput.disabled = false;
+                button.disabled = false;
+                button.textContent = originalText;
+            }
         });
-
-        // Function to analyze the image from the user's uploaded input
-        function analyzeImage(formData) {
-            // Grab the user's uploaded input in the form of POST method
-            fetch("/upload", {
-                method: "POST",
-                body: formData
-            })
-                // Application will send a JSON response that will translate for the script function
-                .then(response => response.json())
-                .then(data => {
-                    // Display the results section and "Image" part
-                    document.getElementById("results").style.display = "block";
-                    document.getElementById("imagePart").style.display = "block";
-
-                    // Update the content of the "Image" part
-                    document.getElementById("uploadedImage").src = URL.createObjectURL(formData.get('file'));
-
-                    // Update the content of the results
-                    document.getElementById("classification").innerText = data.result;
-                    document.getElementById("accuracyScore").innerText = data.scaled_value;
-
-                    // Get variables for accuracy score and result algorithm
-                    let scaledValue;
-                    const resultBenign = document.querySelector(".result-description-benign");
-                    const resultMalignant = document.querySelector(".result-description-malignant");
-                    const analyzeBenign = document.querySelector(".result-benign");
-                    const analyzeMalignant = document.querySelector(".result-malignant");
-                    const nextBenign = document.querySelector(".nextStep-benign");
-                    const nextMalignant = document.querySelector(".nextStep-malignant");
-                    const accuracyPercentHigh = document.querySelector(".accuracyPercentHigh");
-                    const accuracyPercentLow = document.querySelector(".accuracyPercentLow");
-                    // According to the prediction scores on the model, benign results can go into 0.49 to < 0.001
-                    // And malignant results can go from 0.5 to 1
-
-                    // Benign Condition
-                    if (data.scaled_value >= 0.001 && data.scaled_value <= 0.49) {
-                        // Show benign description while hiding the malignant description
-                        nextBenign.style.display = "block";
-                        nextMalignant.style.display = "none";
-                        analyzeBenign.style.display = "block";
-                        analyzeMalignant.style.display = "none";
-                        resultBenign.style.display = "block";
-                        resultMalignant.style.display = "none";
-                        // Get the decimal value of the result and turn it into percentage
-                        scaledValue = (1 - data.scaled_value / 0.49) * 100;
-                    } else if (data.scaled_value >= 0.5 && data.scaled_value <= 1) { // Malignant description
-                        // Display malignant description while hiding the benign description
-                        nextBenign.style.display = "none";
-                        nextMalignant.style.display = "block";
-                        analyzeBenign.style.display = "none";
-                        analyzeMalignant.style.display = "block";
-                        resultBenign.style.display = "none";
-                        resultMalignant.style.display = "block";
-                        // Get the decimal value of the result and turn it into percentage
-                        scaledValue = (data.scaled_value - 0.5) / (1 - 0.5) * 100;
-                    }
-                    if (scaledValue > 50) {
-                        accuracyPercentHigh.style.display = "block";
-                        accuracyPercentLow.style.display = "hidden";
-                    } else {
-                        accuracyPercentLow.style.display = "block";
-                        accuracyPercentHigh.style.display = "hidden";
-                    }
-
-                    // Round the scaled percentage before displaying 
-                    const roundedScaledValue = Math.round(scaledValue);
-                    document.getElementById("accuracyScore").innerText = roundedScaledValue + "%";
-
-                    // Re-enable the file input and button after 17 seconds (17000 milliseconds)
-                    setTimeout(function () {
-                        document.querySelector('input[type="file"]').disabled = false;
-                        document.querySelector('.upload-button').disabled = false;
-                        document.querySelector('.upload-button').textContent = "Analyze Image";
-                    }, 15500);
-                })
-                // For error handling the application model
-                .catch(error => console.error("Error:", error));
-        }
-
-        // Hide the results section and "Image" part initially
         document.getElementById("results").style.display = "none";
         document.getElementById("imagePart").style.display = "none";
-
-
     </script>
 
 </body>
