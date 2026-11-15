@@ -9,12 +9,12 @@ import os
 import tempfile
 from pathlib import Path
 
-import numpy as np
 import requests
 from flask import Flask, jsonify, render_template, request
 from werkzeug.utils import secure_filename
 
 try:
+    import numpy as np
     from tensorflow.keras.models import load_model
     from tensorflow.keras.preprocessing import image as keras_image
 except Exception as exc:  # TensorFlow may be unavailable in lightweight environments.
